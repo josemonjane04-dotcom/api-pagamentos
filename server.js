@@ -1,64 +1,55 @@
-const express = require('express')
-const fs = require('fs')
-const path = require('path')
-const cors = require('cors')
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
 
-const app = express()
-app.use(cors())
-app.use(express.json())
+const app = express();
+app.use(express.json());
 
-const pagamentosFile = path.join(__dirname, 'pagamentos.json')
+// Caminho do arquivo de pagamentos
+const dataDir = path.join(__dirname, 'data');
+const dataFile = path.join(dataDir, 'pagamentos.json');
 
-// ===============================
-// 🔐 GARANTIR ARQUIVO
-// ===============================
-if (!fs.existsSync(pagamentosFile)) {
-  fs.writeFileSync(pagamentosFile, '[]')
-}
+// Cria pasta e arquivo se não existir
+if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
+if (!fs.existsSync(dataFile)) fs.writeFileSync(dataFile, '[]');
 
-// ===============================
-// 📥 RECEBER PAGAMENTO (WEBHOOK)
-// ===============================
-app.post('/pagamento', (req, res) => {
-  try {
-    const dados = req.body
+// Rota teste raiz
+app.get('/', (req, res) => {
+  res.send('API de pagamentos ativa! Use /pagamentos para listar.');
+});
 
-    if (!dados.valor || !dados.numero) {
-      return res.status(400).json({ erro: 'Dados obrigatórios ausentes' })
-    }
-
-    const pagamentos = JSON.parse(fs.readFileSync(pagamentosFile))
-
-    const novoPagamento = {
-      id: Date.now(),
-      valor: dados.valor,
-      numero: dados.numero,
-      metodo: dados.metodo || 'desconhecido',
-      mensagem: dados.mensagem || '',
-      data: new Date().toISOString()
-    }
-
-    pagamentos.push(novoPagamento)
-    fs.writeFileSync(pagamentosFile, JSON.stringify(pagamentos, null, 2))
-
-    res.json({ sucesso: true, pagamento: novoPagamento })
-
-  } catch (err) {
-    console.error(err)
-    res.status(500).json({ erro: 'Erro interno' })
-  }
-})
-
-// ===============================
-// 📤 LISTAR PAGAMENTOS (BOT LÊ)
-// ===============================
+// Listar pagamentos
 app.get('/pagamentos', (req, res) => {
-  const pagamentos = JSON.parse(fs.readFileSync(pagamentosFile))
-  res.json(pagamentos)
-})
+  const pagamentos = JSON.parse(fs.readFileSync(dataFile));
+  res.json(pagamentos);
+});
 
-// ===============================
-const PORT = process.env.PORT || 3000
+// Adicionar pagamento
+app.post('/pagamento', (req, res) => {
+  const { valor, numero, metodo, mensagem } = req.body;
+  if (!valor || !numero || !metodo) {
+    return res.status(400).json({ erro: 'Campos obrigatórios ausentes' });
+  }
+
+  const pagamentos = JSON.parse(fs.readFileSync(dataFile));
+
+  const novo = {
+    id: Date.now(),
+    valor,
+    numero,
+    metodo,
+    mensagem: mensagem || '',
+    data: new Date().toISOString()
+  };
+
+  pagamentos.push(novo);
+  fs.writeFileSync(dataFile, JSON.stringify(pagamentos, null, 2));
+
+  res.json({ sucesso: true, pagamento: novo });
+});
+
+// Porta dinâmica para Render
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log('🚀 API de pagamentos rodando na porta', PORT)
-})
+  console.log(`🚀 API de pagamentos rodando na porta ${PORT}`);
+});
