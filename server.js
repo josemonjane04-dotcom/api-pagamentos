@@ -24,21 +24,19 @@ app.get('/pagamentos', (req, res) => {
   res.json(pagamentos);
 });
 
-// Adicionar pagamento
+// Adicionar pagamento — agora só precisa da mensagem
 app.post('/pagamento', (req, res) => {
-  const { valor, numero, metodo, mensagem } = req.body;
-  if (!valor || !numero || !metodo) {
-    return res.status(400).json({ erro: 'Campos obrigatórios ausentes' });
+  const { mensagem } = req.body;
+
+  if (!mensagem) {
+    return res.status(400).json({ erro: 'Campo mensagem ausente' });
   }
 
   const pagamentos = JSON.parse(fs.readFileSync(dataFile));
 
   const novo = {
     id: Date.now(),
-    valor,
-    numero,
-    metodo,
-    mensagem: mensagem || '',
+    mensagem: mensagem,
     data: new Date().toISOString()
   };
 
